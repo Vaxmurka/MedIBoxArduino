@@ -23,6 +23,10 @@ LED MainLED;  // Светодиоды главной кнопки
 Finger finger(&MainLED);
 
 
+#include "DFRobotDFPlayerMini.h"
+DFRobotDFPlayerMini player;
+
+
 int value = 0, mode = 0;
 bool defaultColor = true;
 unsigned long defaultColorTimer;
@@ -51,13 +55,19 @@ void getPills(int box, int count) {
 void TakingPills() {
     switch (mode) {
         case 1:
-            getPills(2, 1);
+            player.playMp3Folder(Users1);
+//            delay(5000);
+//            getPills(2, 1);
             break;
         case 2:
-            getPills(1, 1);
+            player.playMp3Folder(Users2);
+//            delay(5000);
+//            getPills(1, 1);
             break;
         case 3:
-            getPills(3, 1);
+            player.playMp3Folder(Users3);
+//            delay(5000);
+//            getPills(3, 1);
             break;
     }
 }
@@ -66,6 +76,7 @@ void TakingPills() {
 void setup() {
     Serial.begin(115200);
 
+//    player_setup();
     MainLED.begin();
     finger.init();
 
@@ -77,7 +88,7 @@ void setup() {
 }
 
 void loop() {
-    if (defaultColor) MainLED.setColor(CYAN);
+    if (defaultColor) MainLED.setColor(WHITE);
     if (!defaultColor && millis() - defaultColorTimer > 1500) {
         defaultColor = true;
     }
@@ -153,4 +164,17 @@ void loop() {
 //        if (value == 10) fingerMode = 10;
     }
 
+}
+
+void player_setup() {
+    Serial2.begin(9600);  //Player_Serial
+
+    if (!player.begin(Serial2)) {  //Use softwareSerial to communicate with mp3.
+        Serial.println(F("Unable to begin:"));
+        Serial.println(F("1.Please recheck the connection!"));
+        Serial.println(F("2.Please insert the SD card!"));
+    }
+    Serial.println(F("DFPlayer Mini online."));
+
+    player.volume(VOLUME);  //Set volume value. From 0 to 30
 }
