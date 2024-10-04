@@ -70,6 +70,9 @@ void Finger::scan() {
 int Finger::getID() {
   return VAR_this_ID;
 }
+void Finger::clearID() {
+  VAR_this_ID = 0;
+}
 
 void Finger::readFinger() {
   Serial.println(F("Чтение отпечатка пальца"));

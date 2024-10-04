@@ -22,6 +22,7 @@ public:
 
     void setEvent(State _state);
     int getID();
+    void clearID();
 private:
     LED* led;
     State state;

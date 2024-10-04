@@ -133,54 +133,57 @@ void MMotor::tick() {
         if (counter == boxCounter) {
             rotateLoopRunning = false;
             stop();
-            state = 1;
+            // state = 1;
+            statePos = true;
+            return;
         }
 
         if (click()) counter++;
-        // Serial.println(counter);
+        
 
         if (counter < boxCounter) {
             run(dir);
-            state = 0;
+            // state = 0;
+            statePos = false;
         }
     } else if (type == CASSETTE) {
-        if (!flagParcking) {
-            if (stopSupply) {
-                parckingTimer = millis();
-                flagParcking = true;
-                state = 1;
-            }
-
-            if (isPill()) {
-                stopSupply = true;
-                parckingTimer = millis();
-                flagParcking = true;
-                state = 1;
-            }
-
-            if (millis() - pillTimer > delayCheckPills && !stopSupply) {
-                parckingTimer = millis();
-                flagParcking = true;
-
-                state = -1;
-            }
-
-            if (!stopSupply) {
-                run(true);
-                state = 0;
-            }
-        } else {
-
-            if (millis() - parckingTimer > 2000) {
-                stop();
-                Serial.println("--------------- STOP ----------------");
-                flagParcking = false;
-                rotateLoopRunning = false;
-                return;
-            }
-            run(false);
-            Serial.println("GO");
+      if (!flagParcking) {
+        if (stopSupply) {
+            parckingTimer = millis();
+            flagParcking = true;
+            state = 1;
         }
+
+        if (isPill()) {
+            stopSupply = true;
+            parckingTimer = millis();
+            flagParcking = true;
+            state = 1;
+            Serial.print("click");
+        }
+
+        if (millis() - pillTimer > delayCheckPills && !stopSupply) {
+            parckingTimer = millis();
+            flagParcking = true;
+
+            state = -1;
+        }
+
+        if (!stopSupply) {
+            run(true);
+            state = 0;
+        }
+      } else {
+        if (millis() - parckingTimer > 2000) {
+            stop();
+            // Serial.println("--------------- STOP ----------------");
+            flagParcking = false;
+            rotateLoopRunning = false;
+            return;
+        }
+        run(false);
+        // Serial.println("GO");
+      }
     } else {
         if (millis() - waterTimer > 2000) {
             stop();
@@ -197,7 +200,7 @@ int MMotor::Array(int array[], int val) {
     }
 }
 
-void MMotor::supply(int count) {
+void MMotor::supply(int count = 1) {
     counter = 0;
     pillCounter = count;
     pillTimer = millis();
@@ -212,8 +215,23 @@ void MMotor::parcking() {
     rotateLoopRunning = true;
 }
 
-int MMotor::getState() {
-    return state;
+int MMotor::getState_int() {
+  if (state == 1) {
+    state = 0;
+    return 1;
+  } else if (state == -1) {
+    state = 0;
+    return -1;
+  }
+  return 0;
+}
+
+bool MMotor::getState() {
+  if (statePos) {
+    statePos = false;
+    return true;
+  }
+  else return false;
 }
 
 void MMotor::getWater() {
