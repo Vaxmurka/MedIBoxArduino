@@ -19,6 +19,9 @@ public:
     void begin();
     void tick();
     int getState_int();
+    void setState_int(int i) {
+      state = i;
+    }
     bool getState();
     void get() {
         Serial.println(type);

@@ -180,7 +180,6 @@ void MMotor::tickCassette() {
       parckingTimer = millis();
       flagParcking = true;
       state = 1;
-      Serial.print("click");
     }
 
     if (millis() - pillTimer > delayCheckPills && !stopSupply) {
@@ -199,6 +198,7 @@ void MMotor::tickCassette() {
       stop();
       flagParcking = false;
       rotateLoopRunning = false;
+      state = 10;
       return;
     }
     run(false);
@@ -235,14 +235,14 @@ void MMotor::parcking() {
 }
 
 int MMotor::getState_int() {
-  if (state == 1) {
-    state = 0;
-    return 1;
-  } else if (state == -1) {
-    state = 0;
-    return -1;
-  }
-  return 0;
+  // if (state == 1) {
+  //   state = 0;
+  //   return 1;
+  // } else if (state == -1) {
+  //   state = 0;
+  //   return -1;
+  // }
+  return state;
 }
 
 bool MMotor::getState() {

@@ -30,42 +30,10 @@ int currentID;
 
 int value = 0, mode = 0, currentBox = 1, targetBox = 1, blankBox;
 bool defaultColor = true, Ispour = false, clickFlag = false;
-unsigned long defaultColorTimer;
+unsigned long defaultColorTimer, timer, waitTime, hueta;
 
-// bool isTake = false, isWater = false;
-
-
-// void getPills(int box, int count) {
-//     baraban.rotate(box);
-//     if (baraban.getState() == 1) {
-//         boxMotor.supply(count);
-//         if (boxMotor.getState() == 1) {
-//             Serial.println("OK");
-//             isTake = false;
-
-//             isWater = true;
-//         }
-//         else if (boxMotor.getState() == -1) {
-//             Serial.println("Stop -------");
-//             Serial.println("ERROR");
-//             isTake = false;
-//         }
-//     }
-// }
-
-// void TakingPills() {
-//     switch (mode) {
-//         case 1:
-//             getPills(2, 1);
-//             break;
-//         case 2:
-//             getPills(1, 1);
-//             break;
-//         case 3:
-//             getPills(3, 1);
-//             break;
-//     }
-// }
+bool isWater = false, swWater = false, flagOKWater = false, giveWater = false;
+bool isOther = false;
 
 void GivePills(int index, bool secondCall = false) {
   if (targetBox != index) {
@@ -75,9 +43,12 @@ void GivePills(int index, bool secondCall = false) {
 
   if (secondCall) {
     Ispour = false;
+    isWater = true;
     Serial.println("Я подъехал к " + String(index) + " боксу");
     boxMotor.supply();
-    if (boxMotor.getState()) Serial.println("test");
+    hueta = millis();
+    Serial.println(String(isWater) + " флаг на воду");
+    boxMotor.setState_int(0);
   }
 }
 
@@ -124,15 +95,25 @@ void loop() {
       }
       digitalWrite(10, 0);
       switch (mode) {
-        case 1: GivePills(1); break;
+        case 1: GivePills(2); break;
         case 2: GivePills(2); break;
-        case 3: GivePills(1); break;
+        case 3: GivePills(2); break;
       }
     }
     finger.clearID();
   }
 
   if (baraban.getState() && Ispour) GivePills(targetBox, true);
+  if (boxMotor.getState_int() == 1 && isWater) {
+    isWater = false;
+    Serial.println("test " + String(millis() - hueta));
+    giveWater = true;
+  }
+
+  if (boxMotor.getState_int() == 10 && giveWater) {
+    giveWater = false;
+    getWater();
+  }
 
   if (defaultColor) MainLED.setColor(CYAN);
   if (!defaultColor && millis() - defaultColorTimer > 1500) {
@@ -231,8 +212,44 @@ void loop() {
 
 }
 
+void getWater() {
+  myDFPlayer.playMp3Folder(NeedWater);
+  delay(5000);
+  timer = millis();
+  waitTime = millis();
+  while (digitalRead(42)) {
+    if (millis() - waitTime >= 200) {
+      waitTime = millis();
+      swWater = !swWater;
+      MainLED.setColor(swWater ? BLUE : None);
+    }
+    if (millis() - timer >= delayNeedWater) break;
+    if (!digitalRead(42)) {
+      flagOKWater = true;
+      break;
+    }
+  }
+  if (flagOKWater) {
+    if (!isWaterGlass()) {
+      myDFPlayer.playMp3Folder(NotGlassW);
+      while (true) {
+        if (isWaterGlass()) break;
+      }
+    }
+    water.getWater();
+    isOther = true;
+    flagOKWater = false;
+  }
+  // delay(10000);
+  
+}
+
 bool isPillGlass() {
   return !digitalRead(PILL_GLASS);
+}
+
+bool isWaterGlass() {
+  return !digitalRead(WATER_GLASS);
 }
 
 void player_setup() {
