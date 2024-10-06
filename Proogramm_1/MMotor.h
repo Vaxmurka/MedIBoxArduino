@@ -23,9 +23,9 @@ public:
     void get() {
         Serial.println(type);
     }
-    int getCurrentBlankBox() {
-      return currentBox, blankBox;
-    }
+
+    void switchBox(bool dir);
+    void fixStop();
 
     void rotate(int box);   // Поворот барабана контейнер -> подача
     void home();            // Возвращение в нулевую точку
@@ -77,6 +77,9 @@ private:
         bool checkState = digitalRead(CHECK_PILL);
         return !checkState;
     }
+    void tickBaraban();
+    void tickCassette();
+    void tickWater();
 
     bool rotateLoopRunning = false;
 

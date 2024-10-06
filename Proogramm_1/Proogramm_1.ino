@@ -29,7 +29,7 @@ Finger finger(&MainLED);
 int currentID;
 
 int value = 0, mode = 0, currentBox = 1, targetBox = 1, blankBox;
-bool defaultColor = true, Ispour = false;
+bool defaultColor = true, Ispour = false, clickFlag = false;
 unsigned long defaultColorTimer;
 
 // bool isTake = false, isWater = false;
@@ -77,6 +77,7 @@ void GivePills(int index, bool secondCall = false) {
     Ispour = false;
     Serial.println("Я подъехал к " + String(index) + " боксу");
     boxMotor.supply();
+    if (boxMotor.getState()) Serial.println("test");
   }
 }
 
@@ -85,6 +86,7 @@ void setup() {
     Serial.begin(115200);
 
     MainLED.begin();
+    pinMode(10, OUTPUT);
     finger.init();
     player_setup();
 
@@ -107,28 +109,34 @@ void loop() {
   water.tick();
 
   currentID = finger.getID();
-  if (currentID == mode) {
-    // Serial.println("Найдено совпадение  с базой");
-    switch (mode) {
-      case 1: GivePills(1); break;
-      case 2: GivePills(2); break;
-      case 3: GivePills(1); break;
-      case 4: GivePills(2); break;
+
+  if (currentID == 255) {
+    myDFPlayer.playMp3Folder(Users1);
+    finger.clearID();
+  } else if (currentID == mode && clickFlag) {
+    clickFlag = false;
+    Serial.println(String(currentID) + "\t\t" + String(mode));
+    if (!isPillGlass()) {
+      myDFPlayer.playMp3Folder(NotGlassP);
+      while (true) {
+        digitalWrite(10, 1);
+        if (isPillGlass()) break;
+      }
+      digitalWrite(10, 0);
+      switch (mode) {
+        case 1: GivePills(1); break;
+        case 2: GivePills(2); break;
+        case 3: GivePills(1); break;
+      }
     }
     finger.clearID();
-  } else {
-    // Serial.println("Не найдено совпадение  с базой");
-    myDFPlayer.playMp3Folder(UserWrong);
   }
-  currentBox, blankBox = baraban.getCurrentBlankBox();
+
   if (baraban.getState() && Ispour) GivePills(targetBox, true);
-  // if (!baraban.getState()) Serial.println(baraban.getState());
-  // else Serial.println(" ------- STOP ----------");
-  // Serial.println("CurrentID: " + String(currentID));
 
   if (defaultColor) MainLED.setColor(CYAN);
   if (!defaultColor && millis() - defaultColorTimer > 1500) {
-      defaultColor = true;
+    defaultColor = true;
   }
 
 
@@ -175,20 +183,21 @@ void loop() {
       }
   }
   
-  if (mainBtn.isSingle()) {  // Чтение отпечатков с определением личности
-    MainLED.click();
-    if (++mode > 4) mode = 1;
+  if (mainBtn.isSingle()) {
+    MainLED.setColor(PURPLE);
+    delay(200);
+    MainLED.setColor(CYAN);
+    if (++mode > 3) mode = 1;
     Ispour = true;
+    clickFlag = true;
     switch (mode) {
       case 1: myDFPlayer.playMp3Folder(Users1); break;
       case 2: myDFPlayer.playMp3Folder(Users2); break;
-      case 3: myDFPlayer.playMp3Folder(Users1); break;
-      case 4: myDFPlayer.playMp3Folder(Users2); break;
+      case 3: myDFPlayer.playMp3Folder(Users3); break;
     }
-    delay(6000);
     defaultColor = false;
     defaultColorTimer = millis();
-    finger.setEvent(READ);
+    finger.setEvent(READ, mode);
   }
   if (mainBtn.isTriple()) {  // Запись отпечатка
     MainLED.blink(BLUE);
@@ -200,12 +209,30 @@ void loop() {
     value++;
     Serial.println(value);
     if (value == 10) {
+      value = 0;
       finger.setEvent(CLEAR);
       defaultColor = false;
       defaultColorTimer = millis();
     }
   }
 
+
+  if (ROTATE_BTN.isSingle()) baraban.switchBox(true);
+  if (ROTATE_BTN.isDouble()) baraban.switchBox(false);
+  if (ROTATE_BTN.isStep()) {
+    value++;
+    Serial.println(value);
+    if (value == 5) {
+      value = 0;
+      boxMotor.fixStop();
+    }
+  }
+
+
+}
+
+bool isPillGlass() {
+  return !digitalRead(PILL_GLASS);
 }
 
 void player_setup() {

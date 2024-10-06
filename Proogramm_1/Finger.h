@@ -1,3 +1,4 @@
+#include <stdint.h>
 //
 // Created by Nikit on 22.08.2024.
 //
@@ -20,12 +21,14 @@ public:
     void init();
     void scan();
 
-    void setEvent(State _state);
+    void setEvent(State _state, int mode = 0);
     int getID();
     void clearID();
 private:
     LED* led;
     State state;
+
+    int targetID;
 
     bool scanLoop = false, readFlag = false, writeFlag = false;
     unsigned long tmr, loopTime;
@@ -35,6 +38,7 @@ private:
     // void writeFinger();
     void clearData();
     void readFinger();
+    uint8_t getFingerprintID();
     uint8_t getFingerprintEnroll();
 };
 

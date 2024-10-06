@@ -28,11 +28,12 @@ void Finger::init() {
   led->setColor(CYAN);
 }
 
-void Finger::setEvent(State _state)  {
+void Finger::setEvent(State _state, int mode = 0)  {
   state = _state;
 
   switch(state) {
     case READ: 
+      targetID = mode;
       scanLoop = true;
       readFlag = true;
       writeFlag = false;
@@ -57,6 +58,7 @@ void Finger::scan() {
     if (millis() - loopTime >= 10) {
       loopTime = millis();
       readFinger();
+      // VAR_this_ID = getFingerprintID();
     }
   }
   if (writeFlag) {
@@ -79,50 +81,59 @@ void Finger::readFinger() {
   if (fp.getImage() == FINGERPRINT_OK) {
     if (fp.image2Tz() == FINGERPRINT_OK) {
       if (fp.fingerFastSearch() == FINGERPRINT_OK) {    //fingerSearch
-        Serial.println(F("Найдено совпадение по отпечатку!"));
         VAR_this_ID = fp.fingerID;
-        Serial.println("ID finger: " + String(VAR_this_ID));
-        led->blink(GREEN);
+        if (VAR_this_ID == targetID) {
+          Serial.println(F("Найдено совпадение по отпечатку!"));
+          Serial.println("ID fp: " + String(VAR_this_ID));
+          led->blink(GREEN);
+        } else {
+          Serial.println(F("NE Найдено совпадение по отпечатку!"));
+          led->error(1);
+          VAR_this_ID = -1;
+        }
         scanLoop = false;
         readFlag = false;
-      } else fp.fingerFastSearch();
+        return;
+      } else {
+        scanLoop = false;
+        readFlag = false;
+        led->error(1);
+        VAR_this_ID = -1;
+        return;
+      }
     }
   }
 }
 
-// void Finger::writeFinger() {
-//   Serial.print(F("Ожидание действительного пальца для регистрации в качестве #"));
-//   Serial.println(id);
-//   led->setColor(BLUE);
+uint8_t Finger::getFingerprintID() {
+  uint8_t p = fp.getImage();
+  if (p == FINGERPRINT_OK) {
 
-//   while (fp.getImage() != FINGERPRINT_OK);
+    p = fp.image2Tz();
+    if(p == FINGERPRINT_OK) {
 
-//   if (fp.image2Tz(1) == FINGERPRINT_OK) {
-//     Serial.println(F("Уберите палец со сканера"));
-//     led->blink(WHITE);
+      scanLoop = false;
+      readFlag = false;
+      p = fp.fingerSearch();
+      if (p == FINGERPRINT_OK) {
 
-//     while ((fp.getImage() != FINGERPRINT_OK));
-
-//     Serial.println(F("Снова приложите тот же палец"));
-//     led->blink(WHITE);
-
-//     while ((fp.getImage() != FINGERPRINT_OK));
-
-//     if (fp.image2Tz(2) == FINGERPRINT_OK) {
-//       // Успешно преобразовано!
-//       Serial.print(F("Создание модели для #"));
-//       Serial.println(id);
-//       if (fp.createModel() == FINGERPRINT_OK) {
-//         Serial.println(F("Отпечатки совпали!"));
-//         if (fp.storeModel(id) == FINGERPRINT_OK) {
-//           Serial.println(F("Сохранено!"));
-//           id++;
-//           led->blink(GREEN);
-//         }
-//       }
-//     }
-//   }
-// }
+        Serial.print(F("Найденный идентификатор #")); Serial.print(fp.fingerID);
+        Serial.print(F(" с уверенностью в ")); Serial.println(fp.confidence);
+        led->blink(GREEN);
+        return fp.fingerID;
+      } else {
+        led->error(1);
+        return -1;
+      }
+    }
+  } else {
+    scanLoop = false;
+    readFlag = false;
+    Serial.println(F("Неопознанная ошибка"));
+    led->error(2);
+    return -1;
+  }
+}
 
 //***************** Запись отпечатков в сканер ***************************
 

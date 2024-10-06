@@ -34,6 +34,23 @@ void MMotor::begin() {
     pinMode(WATER_PIN, OUTPUT);
 }
 
+void MMotor::switchBox(bool dir) {
+  int choiseBox = currentBox;
+  if (dir) {
+    if (++choiseBox > 8) choiseBox = 1;
+  } else {
+    if (--choiseBox < 1) choiseBox = 8;
+  }
+  rotate(choiseBox);
+}
+
+void MMotor::fixStop() {
+  run(true);
+  delay(1000);
+  run(false);
+  delay(2000);
+  stop();
+}
 
 void MMotor::rotate(int box) {
     if (box == currentBox) return;
@@ -129,69 +146,71 @@ void MMotor::stop() {
 void MMotor::tick() {
     if (!rotateLoopRunning) return;
 
-    if (type == BARABAN) {
-        if (counter == boxCounter) {
-            rotateLoopRunning = false;
-            stop();
-            // state = 1;
-            statePos = true;
-            return;
-        }
+    if (type == BARABAN) tickBaraban();
+    else if (type == CASSETTE) tickCassette();
+    else tickWater();
+}
 
-        if (click()) counter++;
-        
+void MMotor::tickBaraban() {
+  if (counter == boxCounter) {
+    rotateLoopRunning = false;
+    stop();
+    statePos = true;
+    return;
+  }
 
-        if (counter < boxCounter) {
-            run(dir);
-            // state = 0;
-            statePos = false;
-        }
-    } else if (type == CASSETTE) {
-      if (!flagParcking) {
-        if (stopSupply) {
-            parckingTimer = millis();
-            flagParcking = true;
-            state = 1;
-        }
+  if (click()) counter++;
+  
 
-        if (isPill()) {
-            stopSupply = true;
-            parckingTimer = millis();
-            flagParcking = true;
-            state = 1;
-            Serial.print("click");
-        }
-
-        if (millis() - pillTimer > delayCheckPills && !stopSupply) {
-            parckingTimer = millis();
-            flagParcking = true;
-
-            state = -1;
-        }
-
-        if (!stopSupply) {
-            run(true);
-            state = 0;
-        }
-      } else {
-        if (millis() - parckingTimer > 2000) {
-            stop();
-            // Serial.println("--------------- STOP ----------------");
-            flagParcking = false;
-            rotateLoopRunning = false;
-            return;
-        }
-        run(false);
-        // Serial.println("GO");
-      }
-    } else {
-        if (millis() - waterTimer > 2000) {
-            stop();
-            rotateLoopRunning = false;
-            return;
-        }
-        run(true);
+  if (counter < boxCounter) {
+    run(dir);
+    statePos = false;
+  }
+}
+void MMotor::tickCassette() {
+  if (!flagParcking) {
+    if (stopSupply) {
+      parckingTimer = millis();
+      flagParcking = true;
+      state = 1;
     }
+
+    if (isPill()) {
+      stopSupply = true;
+      parckingTimer = millis();
+      flagParcking = true;
+      state = 1;
+      Serial.print("click");
+    }
+
+    if (millis() - pillTimer > delayCheckPills && !stopSupply) {
+      parckingTimer = millis();
+      flagParcking = true;
+
+      state = -1;
+    }
+
+    if (!stopSupply) {
+      run(true);
+      state = 0;
+    }
+  } else {
+    if (millis() - parckingTimer > 2000) {
+      stop();
+      flagParcking = false;
+      rotateLoopRunning = false;
+      return;
+    }
+    run(false);
+  }
+}
+void MMotor::tickWater() {
+  if (millis() - waterTimer > 2000) {
+    stop();
+    rotateLoopRunning = false;
+    return;
+  }
+  run(true);
 }
 
 int MMotor::Array(int array[], int val) {
