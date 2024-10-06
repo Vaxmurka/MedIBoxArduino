@@ -56,7 +56,7 @@ void MMotor::rotate(int box) {
     currentBox = box;
     int index = Array(arrayR, currentBox);
     blankBox = arrayB[index];
-    // Serial.println("currentBox " + String(currentBox) + " blankBox " + String(blankBox) + "  index " + String(index));
+    Serial.println("currentBox " + String(currentBox) + " blankBox " + String(blankBox) + "  index " + String(index));
 
     counter = -1;
     rotateLoopRunning = true;
@@ -83,7 +83,7 @@ void MMotor::getBox(int box) {
 
     int index = Array(arrayB, blankBox);
     currentBox = arrayR[index];
-    // Serial.println("currentBox " + String(currentBox) + " blankBox " + String(blankBox));
+    Serial.println("currentBox " + String(currentBox) + " blankBox " + String(blankBox));
 
     counter = -1;
     rotateLoopRunning = true;
@@ -133,14 +133,18 @@ void MMotor::tick() {
         if (counter == boxCounter) {
             rotateLoopRunning = false;
             stop();
-            state = 1;
+            // state = 1;
+            statePos = true;
+            return;
         }
 
         if (click()) counter++;
 
+
         if (counter < boxCounter) {
             run(dir);
-            state = 0;
+            // state = 0;
+            statePos = false;
         }
     } else if (type == CASSETTE) {
         if (!flagParcking) {
@@ -155,6 +159,7 @@ void MMotor::tick() {
                 parckingTimer = millis();
                 flagParcking = true;
                 state = 1;
+                Serial.print("click");
             }
 
             if (millis() - pillTimer > delayCheckPills && !stopSupply) {
@@ -169,16 +174,15 @@ void MMotor::tick() {
                 state = 0;
             }
         } else {
-
             if (millis() - parckingTimer > 2000) {
                 stop();
-                Serial.println("--------------- STOP ----------------");
+                // Serial.println("--------------- STOP ----------------");
                 flagParcking = false;
                 rotateLoopRunning = false;
                 return;
             }
             run(false);
-            Serial.println("GO");
+            // Serial.println("GO");
         }
     } else {
         if (millis() - waterTimer > 2000) {
@@ -196,7 +200,7 @@ int MMotor::Array(int array[], int val) {
     }
 }
 
-void MMotor::supply(int count) {
+void MMotor::supply(int count = 1) {
     counter = 0;
     pillCounter = count;
     pillTimer = millis();
@@ -211,8 +215,23 @@ void MMotor::parcking() {
     rotateLoopRunning = true;
 }
 
-int MMotor::getState() {
-    return state;
+int MMotor::getState_int() {
+    if (state == 1) {
+        state = 0;
+        return 1;
+    } else if (state == -1) {
+        state = 0;
+        return -1;
+    }
+    return 0;
+}
+
+bool MMotor::getState() {
+    if (statePos) {
+        statePos = false;
+        return true;
+    }
+    else return false;
 }
 
 void MMotor::getWater() {

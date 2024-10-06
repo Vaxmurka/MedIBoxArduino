@@ -18,9 +18,13 @@ public:
     MMotor(Type _type);
     void begin();
     void tick();
-    int getState();
+    int getState_int();
+    bool getState();
     void get() {
         Serial.println(type);
+    }
+    int getCurrentBlankBox() {
+        return currentBox, blankBox;
     }
 
     void rotate(int box);   // Поворот барабана контейнер -> подача
@@ -28,7 +32,7 @@ public:
     void getBox(int box);   // Поворот барабана контейнер -> дверь
 
     void parcking();        // Парковка
-    void supply(int count); // Подача таблеток
+    void supply(int count = 1); // Подача таблеток
 
     void getWater();
 private:
@@ -38,9 +42,10 @@ private:
     int currentBox = 1, blankBox = 6;
     int boxCounter, counter, pillCounter;
     bool dir, flagParcking = false, stopSupply = false;
+    bool statePos = false;
     int state = 0;
 
-    int powerB = 250;
+    int powerB = 200;
     int powerC = 60;
 
     unsigned long _tmr, pillTimer, stopTimer, parckingTimer, waterTimer;
