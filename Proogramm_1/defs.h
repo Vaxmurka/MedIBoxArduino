@@ -29,11 +29,12 @@
 #define UserWrong 10   // Этого пользователя нет в базе
 #define NeedPills2 11  // Закиньте таблеточки в пакетик и вперёд отсюда
 
-#define VOLUME 20
+#define VOLUME 5
 
 #define MAX_BOX 8      // Максимальное количество контейнеров
 
 // Углы для сервомотора
+#define ZIP_PIN 46  // Пин сервомотора на пакетики
 #define ANGLE_UP 160   // Верхний
 #define ANGLE_DOWN 85  // Нижний
 

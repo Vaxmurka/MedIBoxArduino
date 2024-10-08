@@ -23,11 +23,11 @@ public:
     void tick();
 
     void setColor(Color _color);
-    void off();
+    void off(bool stop = false);
 
     void click();
     void error(int state);
-    void blink(Color _color);
+    void blink(Color _color, bool Loop = false);
 
 private:
     Color color;
@@ -38,7 +38,7 @@ private:
     unsigned long tmr;
     int stateError, count;
 
-    bool ledLoopRunning = false;
+    bool ledLoopRunning = false, blinkLoop = false;
     bool clickFlag = false, errorFlag = false, blinkFlag = false, SW;
 };
 

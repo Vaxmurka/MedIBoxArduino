@@ -56,17 +56,22 @@ void LED::tick() {
     }
 
     if (blinkFlag) {
-        if (count == 4) {
-            blinkFlag = false;
-            ledLoopRunning = false;
-        }
-
-        if (millis() - tmr > 200 && count < 4) {
-            ++count;
+        if (!blinkLoop) {
+          if (count == 6) {
+              blinkFlag = false;
+              ledLoopRunning = false;
+          }
+          if (millis() - tmr > 200 && count < 6) {
+              ++count;
+              SW = !SW;
+              tmr = millis();
+          }
+        } else {
+          if (millis() - tmr > 400) {
             SW = !SW;
             tmr = millis();
+          }
         }
-
         setColor(SW ? color : None);
     }
 }
@@ -111,7 +116,11 @@ void LED::setColor(Color _color) {
     }
 }
 
-void LED::off() {
+void LED::off(bool stop = false) {
+    if (stop) {
+      blinkLoop = false;
+      ledLoopRunning = false;
+    }
     digitalWrite(pinRed, 0);
     digitalWrite(pinGreen, 0);
     digitalWrite(pinBlue, 0);
@@ -135,10 +144,12 @@ void LED::error(int state) {
     ledLoopRunning = true;
 }
 
-void LED::blink(Color _color) {
+void LED::blink(Color _color, bool Loop = false) {
     color = _color;
     tmr = millis();
     blinkFlag = true;
+    if (Loop) blinkLoop = true;
+    else blinkLoop = false;
     count = 0;
     clickFlag = false;
     errorFlag = false;

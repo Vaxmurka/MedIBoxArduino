@@ -1,4 +1,6 @@
 #include <Arduino.h>
+#include <Servo.h>
+Servo zip;
 
 #include "defs.h"
 
@@ -30,12 +32,13 @@ int currentID;
 
 int value = 0, mode = 0, currentBox = 1, targetBox = 1, blankBox;
 bool defaultColor = true, Ispour = false, clickFlag = false;
-unsigned long defaultColorTimer, timer, waitTime, hueta;
+unsigned long defaultColorTimer, timer, waitTime, hueta, happyTime;
 
-bool isWater = false, swWater = false, flagOKWater = false, giveWater = false;
-bool isOther = false;
+bool isWater = false, swWater = false, flagOK = false, giveWater = false;
+bool isOther = false, pourAddedPills = false, withoutWater = false;
+bool happyEnd = false, needZIP = false;
 
-void GivePills(int index, bool secondCall = false) {
+void GivePills(int index, bool secondCall = false, bool pourWater = true) {
   if (targetBox != index) {
     targetBox = index;
     baraban.rotate(index);
@@ -43,13 +46,56 @@ void GivePills(int index, bool secondCall = false) {
 
   if (secondCall) {
     Ispour = false;
-    isWater = true;
+
+    if (pourWater) isWater = true;
+    else isWater = false;
     Serial.println("Я подъехал к " + String(index) + " боксу");
     boxMotor.supply();
     hueta = millis();
     Serial.println(String(isWater) + " флаг на воду");
     boxMotor.setState_int(0);
   }
+}
+void getPills(bool flag = true) {
+  if (!isPillGlass()) {
+    myDFPlayer.playMp3Folder(NotGlassP);
+    while (true) {
+      digitalWrite(10, 1);
+      if (isPillGlass()) break;
+    }
+    digitalWrite(10, 0);
+    needZIP = false;
+    if (flag) {
+      switch (mode) {
+        case 1: GivePills(2); break;
+        case 2: GivePills(2); break;
+        case 3: GivePills(2); break;
+      }
+    } else {
+      needZIP = true;
+      GivePills(1, false, false);
+    }
+  }
+}
+
+void endPills(bool IS_zip) {
+  if (IS_zip) {
+    zip.attach(ZIP_PIN);
+    for (int i = ANGLE_UP; i > ANGLE_DOWN; --i){
+      zip.write(i);
+      delay(10);
+    }
+    for (int i = ANGLE_DOWN; i < ANGLE_UP; ++i){
+      zip.write(i);
+      delay(10);
+    }
+    zip.detach();
+  }
+  MainLED.blink(GREEN, true);
+  // Возьмите стакан с зоны выдачи таблеток
+  myDFPlayer.playMp3Folder(TakeGlassP);
+  delay(4000);
+  MainLED.off(true);
 }
 
 
@@ -68,6 +114,10 @@ void setup() {
     baraban.home();
 }
 
+void yield() {
+  MainLED.tick();
+}
+
 void loop() {
   MainLED.tick();
   finger.scan();
@@ -79,6 +129,8 @@ void loop() {
   boxMotor.tick();
   water.tick();
 
+  if (defaultColor) MainLED.setColor(CYAN);
+
   currentID = finger.getID();
 
   if (currentID == 255) {
@@ -87,23 +139,23 @@ void loop() {
   } else if (currentID == mode && clickFlag) {
     clickFlag = false;
     Serial.println(String(currentID) + "\t\t" + String(mode));
-    if (!isPillGlass()) {
-      myDFPlayer.playMp3Folder(NotGlassP);
-      while (true) {
-        digitalWrite(10, 1);
-        if (isPillGlass()) break;
-      }
-      digitalWrite(10, 0);
-      switch (mode) {
-        case 1: GivePills(2); break;
-        case 2: GivePills(2); break;
-        case 3: GivePills(2); break;
-      }
-    }
+    getPills();
     finger.clearID();
   }
+  if (pourAddedPills) {
+    pourAddedPills = false;
+    Ispour = true;
+    getPills(false);
+  }
+  if (happyEnd) {
+    happyEnd = false;
+    endPills(needZIP);
+  }
 
-  if (baraban.getState() && Ispour) GivePills(targetBox, true);
+  if (baraban.getState() && Ispour) {
+    if (!withoutWater) GivePills(targetBox, true);
+    else GivePills(targetBox, true, false);
+  }
   if (boxMotor.getState_int() == 1 && isWater) {
     isWater = false;
     Serial.println("test " + String(millis() - hueta));
@@ -115,11 +167,7 @@ void loop() {
     getWater();
   }
 
-  if (defaultColor) MainLED.setColor(CYAN);
-  if (!defaultColor && millis() - defaultColorTimer > 1500) {
-    defaultColor = true;
-  }
-
+  if (isOther) addedPills();
 
   if (Serial.available()) {
       String b = (String)Serial.readString();
@@ -177,13 +225,11 @@ void loop() {
       case 3: myDFPlayer.playMp3Folder(Users3); break;
     }
     defaultColor = false;
-    defaultColorTimer = millis();
     finger.setEvent(READ, mode);
   }
   if (mainBtn.isTriple()) {  // Запись отпечатка
     MainLED.blink(BLUE);
     defaultColor = false;
-    defaultColorTimer = millis();
     finger.setEvent(WRITE);
   }
   if (mainBtn.isStep()) {    // Очистка базы данных
@@ -193,7 +239,6 @@ void loop() {
       value = 0;
       finger.setEvent(CLEAR);
       defaultColor = false;
-      defaultColorTimer = millis();
     }
   }
 
@@ -213,35 +258,79 @@ void loop() {
 }
 
 void getWater() {
+  bool SWW = false;
+  // Если вам нужна вода, то нажмите на кнопку пока она мигает
   myDFPlayer.playMp3Folder(NeedWater);
   delay(5000);
   timer = millis();
   waitTime = millis();
-  while (digitalRead(42)) {
-    if (millis() - waitTime >= 200) {
+  while (true) {
+    if (millis() - waitTime > 400) {
+      SWW = !SWW;
       waitTime = millis();
-      swWater = !swWater;
-      MainLED.setColor(swWater ? BLUE : None);
     }
+    MainLED.setColor(SWW ? BLUE : None);
     if (millis() - timer >= delayNeedWater) break;
     if (!digitalRead(42)) {
-      flagOKWater = true;
+      flagOK = true;
+      delay(100);
+      MainLED.off(true);
       break;
     }
   }
-  if (flagOKWater) {
+  if (flagOK) {
     if (!isWaterGlass()) {
       myDFPlayer.playMp3Folder(NotGlassW);
       while (true) {
-        if (isWaterGlass()) break;
+        MainLED.setColor(PURPLE);
+        if (isWaterGlass()) {
+          delay(200);
+          break;
+        }
       }
     }
+    MainLED.off();
     water.getWater();
+    MainLED.blink(GREEN, true);
+    // Возьмите стакан с зоны выдачи воды
+    myDFPlayer.playMp3Folder(TakeGlassW);
+    delay(4000);
+    MainLED.off(true);
     isOther = true;
-    flagOKWater = false;
+    flagOK = false;
+  } else {
+    isOther = true;
   }
-  // delay(10000);
+  withoutWater = true;
   
+}
+
+void addedPills() {
+  bool SWW = false;
+  isOther = false;
+  myDFPlayer.playMp3Folder(NeedPills1);
+  delay(5000);
+
+  timer = millis();
+  waitTime = millis();
+  while (true) {
+    if (millis() - waitTime > 400) {
+      SWW = !SWW;
+      waitTime = millis();
+    }
+    MainLED.setColor(SWW ? BLUE : None);
+    if (millis() - timer >= delayNeedPills) break;
+    if (!digitalRead(42)) {
+      flagOK = true;
+      delay(100);
+      MainLED.off(true);
+      break;
+    }
+  }
+  if (flagOK) {
+    pourAddedPills = true;
+    flagOK = false;
+  }
 }
 
 bool isPillGlass() {

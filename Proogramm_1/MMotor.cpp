@@ -235,13 +235,6 @@ void MMotor::parcking() {
 }
 
 int MMotor::getState_int() {
-  // if (state == 1) {
-  //   state = 0;
-  //   return 1;
-  // } else if (state == -1) {
-  //   state = 0;
-  //   return -1;
-  // }
   return state;
 }
 
@@ -254,6 +247,9 @@ bool MMotor::getState() {
 }
 
 void MMotor::getWater() {
-    waterTimer = millis();
-    rotateLoopRunning = true;
+    // waterTimer = millis();
+    // rotateLoopRunning = true;
+    run(true);
+    delay(2000);
+    stop();
 }

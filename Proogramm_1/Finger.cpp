@@ -33,7 +33,8 @@ void Finger::setEvent(State _state, int mode = 0)  {
 
   switch(state) {
     case READ: 
-      targetID = mode;
+      if (mode == -1) scanComplite = true;
+      else targetID = mode;
       scanLoop = true;
       readFlag = true;
       writeFlag = false;
@@ -77,12 +78,15 @@ void Finger::clearID() {
 }
 
 void Finger::readFinger() {
+  led->setColor(PURPLE);
   Serial.println(F("Чтение отпечатка пальца"));
   if (fp.getImage() == FINGERPRINT_OK) {
     if (fp.image2Tz() == FINGERPRINT_OK) {
       if (fp.fingerFastSearch() == FINGERPRINT_OK) {    //fingerSearch
         VAR_this_ID = fp.fingerID;
-        if (VAR_this_ID == targetID) {
+        led->off(true);
+        if (VAR_this_ID == targetID or scanComplite) {
+          scanComplite = false;
           Serial.println(F("Найдено совпадение по отпечатку!"));
           Serial.println("ID fp: " + String(VAR_this_ID));
           led->blink(GREEN);
@@ -95,6 +99,7 @@ void Finger::readFinger() {
         readFlag = false;
         return;
       } else {
+        led->off(true);
         scanLoop = false;
         readFlag = false;
         led->error(1);

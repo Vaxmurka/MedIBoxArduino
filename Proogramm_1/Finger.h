@@ -31,6 +31,7 @@ private:
     int targetID;
 
     bool scanLoop = false, readFlag = false, writeFlag = false;
+    bool scanComplite = false;
     unsigned long tmr, loopTime;
     uint8_t id = 1; // Используемый ID (текущий)
     uint8_t VAR_this_ID = 0;  // номер ID, шаблон которого требуется сохранить/удалить

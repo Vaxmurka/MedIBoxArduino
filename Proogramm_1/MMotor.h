@@ -24,7 +24,7 @@ public:
     }
     bool getState();
     void get() {
-        Serial.println(type);
+      Serial.println(type);
     }
 
     void switchBox(bool dir);
