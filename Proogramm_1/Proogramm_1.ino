@@ -64,17 +64,17 @@ void getPills(bool flag = true) {
       if (isPillGlass()) break;
     }
     digitalWrite(10, 0);
-    needZIP = false;
-    if (flag) {
-      switch (mode) {
-        case 1: GivePills(2); break;
-        case 2: GivePills(2); break;
-        case 3: GivePills(2); break;
-      }
-    } else {
-      needZIP = true;
-      GivePills(1, false, false);
+  }
+  needZIP = false;
+  if (flag) {
+    switch (mode) {
+      case 1: GivePills(1); break;
+      case 2: GivePills(2); break;
+      case 3: GivePills(3); break;
     }
+  } else {
+    needZIP = true;
+    GivePills(1, false, false);
   }
 }
 
@@ -134,7 +134,7 @@ void loop() {
   currentID = finger.getID();
 
   if (currentID == 255) {
-    myDFPlayer.playMp3Folder(Users1);
+    myDFPlayer.playMp3Folder(UserWrong);
     finger.clearID();
   } else if (currentID == mode && clickFlag) {
     clickFlag = false;
@@ -160,11 +160,13 @@ void loop() {
     isWater = false;
     Serial.println("test " + String(millis() - hueta));
     giveWater = true;
+    boxMotor.setState_int(0);
   }
 
   if (boxMotor.getState_int() == 10 && giveWater) {
     giveWater = false;
     getWater();
+    boxMotor.setState_int(0);
   }
 
   if (isOther) addedPills();
@@ -261,7 +263,7 @@ void getWater() {
   bool SWW = false;
   // Если вам нужна вода, то нажмите на кнопку пока она мигает
   myDFPlayer.playMp3Folder(NeedWater);
-  delay(5000);
+  delay(4000);
   timer = millis();
   waitTime = millis();
   while (true) {
@@ -322,11 +324,12 @@ void addedPills() {
     if (millis() - timer >= delayNeedPills) break;
     if (!digitalRead(42)) {
       flagOK = true;
-      delay(100);
+      delay(150);
       MainLED.off(true);
       break;
     }
   }
+  delay(100);
   if (flagOK) {
     pourAddedPills = true;
     flagOK = false;

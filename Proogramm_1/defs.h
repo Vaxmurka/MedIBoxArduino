@@ -29,7 +29,7 @@
 #define UserWrong 10   // Этого пользователя нет в базе
 #define NeedPills2 11  // Закиньте таблеточки в пакетик и вперёд отсюда
 
-#define VOLUME 5
+#define VOLUME 30
 
 #define MAX_BOX 8      // Максимальное количество контейнеров
 
